@@ -22,10 +22,13 @@ function App() {
         try {
             const accRes = await axios.get('http://localhost:8080/api/accounts');
             setAccounts(accRes.data);
-            // We'll fetch history from the new endpoint we're about to create
-            // const histRes = await axios.get('http://localhost:8080/api/accounts/history');
-            // setHistory(histRes.data);
-        } catch (e) { console.error("Sync Error"); }
+
+            // Fetching REAL history from the endpoint
+            const histRes = await axios.get('http://localhost:8080/api/accounts/history');
+            setHistory(histRes.data);
+        } catch (e) {
+            console.error("Dashboard Sync Error:", e);
+        }
     };
 
     useEffect(() => { fetchData(); }, []);
@@ -34,20 +37,21 @@ function App() {
         e.preventDefault();
         setLoading(true);
         try {
+            // Updated URL params to ensure they match @RequestParam in Java
             const url = `http://localhost:8080/api/accounts/transfer?fromId=${transfer.fromId}&toId=${transfer.toId}&amount=${transfer.amount}`;
             const res = await axios.post(url);
-            toast.success(res.data, { icon: "✅" });
-            fetchData();
-            setActiveTab('dashboard'); // Auto-switch back to see balance update
-        }catch (err) {
-            // This pulls the "Sentinel AI has flagged..." message from Java
-            const errorMsg = err.response?.data?.message || "Connection to Sentinel lost";
-            toast.error(errorMsg, {
-                position: "top-right",
-                autoClose: 5000,
-                theme: "colored",
-                icon: <ShieldAlert size={20} />})}
-        finally { setLoading(false); }
+            toast.success(res.data, {
+                icon: "💳",
+                style: { borderRadius: '10px', background: '#333', color: '#fff' }
+            });
+            await fetchData(); // Refresh data immediately
+            setActiveTab('dashboard');
+        } catch (err) {
+            const msg = err.response?.data?.message || "Communication failure";
+            toast.error(msg, { theme: "colored" });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

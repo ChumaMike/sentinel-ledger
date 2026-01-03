@@ -26,13 +26,11 @@ public class AccountService {
 
     @Transactional
     public String transferMoney(Long fromId, Long toId, BigDecimal amount) {
-        // 1. Find Accounts (Fail early if they don't exist)
         Account fromAcc = accountRepository.findById(fromId)
                 .orElseThrow(() -> new RuntimeException("Sender Account #" + fromId + " not found"));
         Account toAcc = accountRepository.findById(toId)
                 .orElseThrow(() -> new RuntimeException("Recipient Account #" + toId + " not found"));
 
-        // 2. Python Sentinel Check
         String sentinelUrl = "http://sentinel-ai:8000/v1/scrutinize";
         Map<String, Object> request = Map.of(
                 "amount", amount,
@@ -41,31 +39,30 @@ public class AccountService {
         );
 
         try {
-            // Fetch response from Python Sentinel
-            Map<String, String> response = restTemplate.postForObject(sentinelUrl, request, Map.class);
-            String decision = response.get("decision"); // Expected "APPROVED" or "FLAGGED"
+            // Log outgoing request
+            System.out.println("DEBUG: Calling Sentinel with: " + request);
+
+            Map<String, Object> response = restTemplate.postForObject(sentinelUrl, request, Map.class);
+            String decision = (String) response.get("decision");
 
             if ("APPROVED".equals(decision)) {
-                // 3. Update Balances
                 fromAcc.setBalance(fromAcc.getBalance().subtract(amount));
                 toAcc.setBalance(toAcc.getBalance().add(amount));
 
                 accountRepository.save(fromAcc);
                 accountRepository.save(toAcc);
 
-                // 4. Save to Audit Log (Transaction Table)
                 transactionRepository.save(new Transaction(fromId, toId, amount, "SUCCESS"));
-
                 return "Transfer Successful: Processed by Sentinel AI";
             } else {
-                // 5. Log the Blocked Attempt
-                transactionRepository.save(new Transaction(fromId, toId, amount, "BLOCKED: AI Security Flag"));
-                throw new RuntimeException("Sentinel AI has flagged this transaction as high risk.");
+                String reason = (String) response.get("reason");
+                transactionRepository.save(new Transaction(fromId, toId, amount, "BLOCKED: " + reason));
+                throw new RuntimeException("Sentinel AI blocked this move: " + reason);
             }
         } catch (Exception e) {
-            // Handle Sentinel being offline or other errors
-            transactionRepository.save(new Transaction(fromId, toId, amount, "FAILED: System Error"));
-            throw new RuntimeException("Banking System Error: " + e.getMessage());
+            // If it's a Sentinel exception, pass the reason through, otherwise generic error
+            String error = e.getMessage().contains("Sentinel") ? e.getMessage() : "Banking System Error: " + e.getMessage();
+            throw new RuntimeException(error);
         }
     }
 
