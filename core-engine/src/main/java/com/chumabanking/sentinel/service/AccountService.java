@@ -24,7 +24,7 @@ public class AccountService {
     @Transactional
     public void transferMoney(Long fromId, Long toId, BigDecimal amount) {
         // 1. Python Sentinel Check (The "Gatekeeper")
-        String sentinelUrl = "http://localhost:8000/v1/scrutinize";
+        String sentinelUrl = "http://sentinel-ai:8000/v1/scrutinize";
         Map<String, Object> request = Map.of(
                 "from_id", fromId,
                 "to_id", toId,
@@ -71,7 +71,7 @@ public class AccountService {
 
         // 2. Check Python Sentinel
         try {
-            String sentinelUrl = "http://localhost:8000/docs"; // FastAPI docs are a safe ping
+            String sentinelUrl = "http://sentinel-ai:8000/docs"; // FastAPI docs are a safe ping
             ResponseEntity<String> response = restTemplate.getForEntity(sentinelUrl, String.class);
             status.put("sentinel", response.getStatusCode().is2xxSuccessful() ? "UP" : "DOWN");
         } catch (Exception e) {
