@@ -26,11 +26,18 @@ public class AccountService {
 
     @Transactional
     public String transferMoney(Long fromId, Long toId, BigDecimal amount) {
+        // 1. Find Accounts
         Account fromAcc = accountRepository.findById(fromId)
                 .orElseThrow(() -> new RuntimeException("Sender Account #" + fromId + " not found"));
         Account toAcc = accountRepository.findById(toId)
                 .orElseThrow(() -> new RuntimeException("Recipient Account #" + toId + " not found"));
 
+        // 🌟 NEW: Business Logic Check - Prevent sending more than you have
+        if (fromAcc.getBalance().compareTo(amount) < 0) {
+            // Log the failure in our history table so the user sees WHY it failed
+            transactionRepository.save(new Transaction(fromId, toId, amount, "FAILED: Insufficient Funds"));
+            throw new RuntimeException("Insufficient funds! Your balance is R" + fromAcc.getBalance());
+        }
         String sentinelUrl = "http://sentinel-ai:8000/v1/scrutinize";
         Map<String, Object> request = Map.of(
                 "amount", amount,

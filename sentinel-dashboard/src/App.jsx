@@ -107,19 +107,59 @@ function App() {
                         {activeTab === 'dashboard' ? (
                             <motion.div key="dash" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                                 <div className="row g-4 mb-5">
-                                    {accounts.map(acc => (
-                                        <div className="col-md-6" key={acc.accountId}>
-                                            <div className="card border-0 shadow-sm p-4 h-100 position-relative">
-                                                <div style={{ position: 'absolute', top: 0, right: 0, width: '6px', height: '100%', backgroundColor: FNB_TEAL }}></div>
-                                                <h6 className="text-muted small fw-bold mb-3 uppercase">Savings Account</h6>
-                                                <h2 className="fw-bold mb-3" style={{ color: '#333' }}>R {acc.balance.toLocaleString()}</h2>
-                                                <div className="d-flex justify-content-between text-muted small">
-                                                    <span>6284 **** {acc.accountId}</span>
-                                                    <Landmark size={18} className="opacity-50" />
+                                    {accounts.map(acc => {
+                                        // Logic: Determine color and health based on balance
+                                        const isLowBalance = acc.balance < 2000;
+                                        const barColor = isLowBalance ? "#dc3545" : FNB_TEAL; // Red if low, Teal if healthy
+                                        const statusText = isLowBalance ? "Low Balance" : "Healthy";
+
+                                        return (
+                                            <div className="col-md-6" key={acc.accountId}>
+                                                <div className="card border-0 shadow-sm p-4 h-100 position-relative" style={{ borderRadius: '16px' }}>
+                                                    <div style={{
+                                                        position: 'absolute', top: 0, right: 0, width: '6px', height: '100%',
+                                                        backgroundColor: barColor, borderTopRightRadius: '16px', borderBottomRightRadius: '16px'
+                                                    }}></div>
+
+                                                    <div className="d-flex justify-content-between align-items-start mb-3">
+                                                        <h6 className="text-muted small fw-bold text-uppercase" style={{ letterSpacing: '1px' }}>
+                                                            Savings Account
+                                                        </h6>
+                                                        <span className={`badge rounded-pill px-2 py-1 small ${isLowBalance ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}>
+                        {statusText}
+                    </span>
+                                                    </div>
+
+                                                    <h2 className="fw-bold mb-4" style={{ color: '#1a1a1a' }}>R {acc.balance.toLocaleString()}</h2>
+
+                                                    <div className="mb-4">
+                                                        <div className="d-flex justify-content-between mb-2">
+                                                            <span className="small text-muted fw-semibold">Spending Power</span>
+                                                            <span className="small fw-bold" style={{ color: barColor }}>
+                            {isLowBalance ? 'Limited' : 'High'}
+                        </span>
+                                                        </div>
+                                                        <div className="progress" style={{ height: '6px', backgroundColor: '#f0f0f0', borderRadius: '10px' }}>
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: isLowBalance ? '30%' : '100%' }} // Simple visual representation
+                                                                transition={{ duration: 1, ease: "easeOut" }}
+                                                                className="progress-bar"
+                                                                style={{ backgroundColor: barColor, borderRadius: '10px' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="d-flex justify-content-between align-items-center text-muted small mt-auto">
+                                                        <span className="fw-medium">Account: 6284 **** {acc.accountId}</span>
+                                                        <div className="bg-light p-2 rounded-circle">
+                                                            <Landmark size={18} style={{ color: barColor }} />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 {/* TRANSACTION HISTORY TABLE */}
