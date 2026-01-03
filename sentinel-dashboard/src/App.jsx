@@ -39,9 +39,15 @@ function App() {
             toast.success(res.data, { icon: "✅" });
             fetchData();
             setActiveTab('dashboard'); // Auto-switch back to see balance update
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Sentinel Blocked Transaction", { theme: "colored" });
-        } finally { setLoading(false); }
+        }catch (err) {
+            // This pulls the "Sentinel AI has flagged..." message from Java
+            const errorMsg = err.response?.data?.message || "Connection to Sentinel lost";
+            toast.error(errorMsg, {
+                position: "top-right",
+                autoClose: 5000,
+                theme: "colored",
+                icon: <ShieldAlert size={20} />})}
+        finally { setLoading(false); }
     };
 
     return (
@@ -113,23 +119,45 @@ function App() {
                                 </div>
 
                                 {/* TRANSACTION HISTORY TABLE */}
-                                <div className="card border-0 shadow-sm p-4">
+                                <div className="card border-0 shadow-sm p-4 mt-4">
                                     <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
-                                        <History size={20} style={{ color: FNB_TEAL }}/> Recent Transactions
+                                        <History size={20} style={{ color: FNB_TEAL }}/> Transaction Audit Log
                                     </h5>
-                                    <table className="table table-hover align-middle">
-                                        <thead className="table-light">
-                                        <tr className="small text-muted"><th>DATE</th><th>DESCRIPTION</th><th>STATUS</th><th>AMOUNT</th></tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr>
-                                            <td>Today</td>
-                                            <td>Opening Balance Seed</td>
-                                            <td><span className="badge bg-success-subtle text-success">SUCCESS</span></td>
-                                            <td className="fw-bold text-primary">+ R 15,000.50</td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
+                                    <div className="table-responsive">
+                                        <table className="table align-middle">
+                                            <thead className="table-light">
+                                            <tr className="small text-muted" style={{ fontSize: '11px', letterSpacing: '1px' }}>
+                                                <th>TIMESTAMP</th>
+                                                <th>TYPE</th>
+                                                <th>AMOUNT</th>
+                                                <th>SENTINEL STATUS</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {history.map((tx) => (
+                                                <tr key={tx.transactionId}>
+                                                    <td className="small text-muted">
+                                                        {new Date(tx.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                    </td>
+                                                    <td className="fw-bold">
+                                                        {tx.fromAccountId === 1 ? "Electronic Payment" : "External Deposit"}
+                                                    </td>
+                                                    <td className={tx.status === 'SUCCESS' ? 'text-dark fw-bold' : 'text-muted text-decoration-line-through'}>
+                                                        R {tx.amount.toLocaleString()}
+                                                    </td>
+                                                    <td>
+              <span className={`badge rounded-pill px-3 py-2 ${
+                  tx.status === 'SUCCESS' ? 'bg-success-subtle text-success' :
+                      tx.status.includes('BLOCKED') ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning'
+              }`}>
+                {tx.status}
+              </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </motion.div>
                         ) : (

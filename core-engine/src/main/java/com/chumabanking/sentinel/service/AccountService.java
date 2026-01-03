@@ -1,13 +1,16 @@
 package com.chumabanking.sentinel.service;
 
 import com.chumabanking.sentinel.model.Account;
+import com.chumabanking.sentinel.model.Transaction;
 import com.chumabanking.sentinel.repository.AccountRepository;
+import com.chumabanking.sentinel.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.ResponseEntity;
@@ -22,37 +25,48 @@ public class AccountService {
     private RestTemplate restTemplate;
 
     @Transactional
-    public void transferMoney(Long fromId, Long toId, BigDecimal amount) {
-        // 1. Python Sentinel Check (The "Gatekeeper")
+    public String transferMoney(Long fromId, Long toId, BigDecimal amount) {
+        // 1. Find Accounts (Fail early if they don't exist)
+        Account fromAcc = accountRepository.findById(fromId)
+                .orElseThrow(() -> new RuntimeException("Sender Account #" + fromId + " not found"));
+        Account toAcc = accountRepository.findById(toId)
+                .orElseThrow(() -> new RuntimeException("Recipient Account #" + toId + " not found"));
+
+        // 2. Python Sentinel Check
         String sentinelUrl = "http://sentinel-ai:8000/v1/scrutinize";
         Map<String, Object> request = Map.of(
+                "amount", amount,
                 "from_id", fromId,
-                "to_id", toId,
-                "amount", amount
+                "to_id", toId
         );
 
-        // Call Python and get the result
-        Map<String, String> response = restTemplate.postForObject(sentinelUrl, request, Map.class);
+        try {
+            // Fetch response from Python Sentinel
+            Map<String, String> response = restTemplate.postForObject(sentinelUrl, request, Map.class);
+            String decision = response.get("decision"); // Expected "APPROVED" or "FLAGGED"
 
-        if (response != null && "DENY".equals(response.get("decision"))) {
-            throw new RuntimeException("SENTINEL REJECTED: " + response.get("reason"));
+            if ("APPROVED".equals(decision)) {
+                // 3. Update Balances
+                fromAcc.setBalance(fromAcc.getBalance().subtract(amount));
+                toAcc.setBalance(toAcc.getBalance().add(amount));
+
+                accountRepository.save(fromAcc);
+                accountRepository.save(toAcc);
+
+                // 4. Save to Audit Log (Transaction Table)
+                transactionRepository.save(new Transaction(fromId, toId, amount, "SUCCESS"));
+
+                return "Transfer Successful: Processed by Sentinel AI";
+            } else {
+                // 5. Log the Blocked Attempt
+                transactionRepository.save(new Transaction(fromId, toId, amount, "BLOCKED: AI Security Flag"));
+                throw new RuntimeException("Sentinel AI has flagged this transaction as high risk.");
+            }
+        } catch (Exception e) {
+            // Handle Sentinel being offline or other errors
+            transactionRepository.save(new Transaction(fromId, toId, amount, "FAILED: System Error"));
+            throw new RuntimeException("Banking System Error: " + e.getMessage());
         }
-
-        // 2. Original Accounting Logic (Only runs if Python says ALLOW)
-        Account fromAccount = accountRepository.findById(fromId)
-                .orElseThrow(() -> new RuntimeException("Sender not found"));
-        Account toAccount = accountRepository.findById(toId)
-                .orElseThrow(() -> new RuntimeException("Receiver not found"));
-
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds");
-        }
-
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        toAccount.setBalance(toAccount.getBalance().add(amount));
-
-        accountRepository.save(fromAccount);
-        accountRepository.save(toAccount);
     }
 
     @Autowired
@@ -80,4 +94,7 @@ public class AccountService {
 
         return status;
     }
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 }

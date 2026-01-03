@@ -33,10 +33,9 @@ def seed_data():
 
     try:
         cur = conn.cursor()
+        print("🔨 Ensuring Schema Integrity...")
 
-        # 🧠 System Principle: Idempotent Setup
-        # Create tables if they are missing (matches Java Entity logic)
-        print("🔨 Ensuring tables exist...")
+        # 1. Create tables if they don't exist (Enterprise Idempotency)
         cur.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                                                          user_id SERIAL PRIMARY KEY,
@@ -58,14 +57,26 @@ def seed_data():
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
                     """)
+        conn.commit()
 
         print("🧹 Cleaning old data...")
         cur.execute("TRUNCATE TABLE transactions, accounts, users RESTART IDENTITY CASCADE;")
+        conn.commit()
+
+        print("👤 Creating User & Accounts...")
+        cur.execute("INSERT INTO users (full_name, email) VALUES (%s, %s) RETURNING user_id",
+                    ("Chuma Meyiswa", "nmeyiswa@gmail.com"))
+        u_id = cur.fetchone()[0]
+
+        cur.execute("INSERT INTO accounts (user_id, balance, currency) VALUES (%s, 15000.50, 'ZAR')", (u_id,))
+        cur.execute("INSERT INTO accounts (user_id, balance, currency) VALUES (%s, 2500.00, 'ZAR')", (u_id,))
+
+        conn.commit()
+        print("🌟 SUCCESS: Database synchronized!")
 
     except Exception as error:
-        print(f"❌ Error during seeding: {error}")
-        if conn:
-            conn.rollback()
+        print(f"❌ Error: {error}")
+        conn.rollback()
     finally:
         if conn:
             cur.close()

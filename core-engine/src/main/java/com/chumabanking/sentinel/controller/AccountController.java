@@ -1,10 +1,13 @@
 package com.chumabanking.sentinel.controller;
 
 import com.chumabanking.sentinel.model.Account;
+import com.chumabanking.sentinel.model.Transaction;
 import com.chumabanking.sentinel.repository.AccountRepository;
+import com.chumabanking.sentinel.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.chumabanking.sentinel.service.AccountService;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,6 +20,9 @@ public class AccountController {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Autowired
     private AccountService accountService;
@@ -42,5 +48,10 @@ public class AccountController {
     @GetMapping("/health")
     public Map<String, String> getHealth() {
         return accountService.checkSystemHealth();
+    }
+
+    @GetMapping("/history")
+    public List<Transaction> getTransactionHistory() {
+        return transactionRepository.findAllByOrderByTimestampDesc();
     }
 }
