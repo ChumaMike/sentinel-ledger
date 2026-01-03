@@ -12,6 +12,7 @@ const FNB_TEAL = "#00a7a7";
 const FNB_AMBER = "#ffb81c";
 
 function App() {
+    const [activeTab, setActiveTab] = useState('dashboard');
     const [accounts, setAccounts] = useState([]);
     const [transfer, setTransfer] = useState({ fromId: '', toId: '', amount: '' });
     const [loading, setLoading] = useState(false);
@@ -40,28 +41,43 @@ function App() {
     };
 
     return (
-        <div className="d-flex" style={{ height: '100vh', overflow: 'hidden' }}>
-            <ToastContainer />
+        <div className="app-container d-flex">
+            {/* --- SIDEBAR --- */}
+            <nav className="bg-dark text-white p-4" style={{ width: '280px', height: '100vh' }}>
+                <div className="mb-5 fw-bold h4 text-teal">SENTINEL</div>
 
-            {/* Sidebar */}
-            <nav className="bg-dark text-white p-4 d-flex flex-column" style={{ width: '280px', minWidth: '280px' }}>
-                <div className="mb-5 d-flex align-items-center">
-                    <ShieldCheck size={32} style={{ color: '#00a7a7' }} />
-                    <span className="ms-2 fw-bold">SENTINEL</span>
-                </div>
                 <div className="d-grid gap-2">
-                    <button className="btn btn-teal text-white d-flex align-items-center gap-2 py-3">
-                        <LayoutDashboard size={18}/> Dashboard
+                    {/* Dashboard Button */}
+                    <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`btn d-flex align-items-center gap-2 p-3 ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-outline-light border-0'}`}
+                    >
+                        <LayoutDashboard size={20}/> Dashboard
                     </button>
-                    <button className="btn btn-outline-light d-flex align-items-center gap-2 py-3">
-                        <Send size={18}/> Payments
+
+                    {/* Payments Button */}
+                    <button
+                        onClick={() => setActiveTab('payments')}
+                        className={`btn d-flex align-items-center gap-2 p-3 ${activeTab === 'payments' ? 'btn-primary' : 'btn-outline-light border-0'}`}
+                    >
+                        <Send size={20}/> Payments
                     </button>
                 </div>
             </nav>
 
-            {/* Main Content */}
-            <main className="flex-grow-1 bg-light overflow-auto p-5">
-                {/* ... rest of your content ... */}
+            {/* --- MAIN CONTENT --- */}
+            <main className="flex-grow-1 p-5 bg-light">
+                {activeTab === 'dashboard' ? (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}}>
+                        <h2>Account Overview</h2>
+                        {/* Move your Account Cards / Table Code here */}
+                    </motion.div>
+                ) : (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}}>
+                        <h2>Make a Payment</h2>
+                        {/* Move your Transfer Form Code here */}
+                    </motion.div>
+                )}
             </main>
         </div>
     );
