@@ -1,6 +1,8 @@
+com/chumabanking/sentinel/model/Transaction.class
 com/chumabanking/sentinel/controller/GlobalExceptionHandler.class
 com/chumabanking/sentinel/repository/AccountRepository.class
 com/chumabanking/sentinel/SentinelApplication.class
+com/chumabanking/sentinel/repository/TransactionRepository.class
 com/chumabanking/sentinel/controller/AccountController.class
 com/chumabanking/sentinel/service/AccountService.class
 com/chumabanking/sentinel/model/Account.class

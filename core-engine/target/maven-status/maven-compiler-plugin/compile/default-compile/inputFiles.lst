@@ -2,5 +2,7 @@
 /home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/controller/AccountController.java
 /home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/controller/GlobalExceptionHandler.java
 /home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/model/Account.java
+/home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/model/Transaction.java
 /home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/repository/AccountRepository.java
+/home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/repository/TransactionRepository.java
 /home/wtc/Music/Projs/sentinel-ledger/core-engine/src/main/java/com/chumabanking/sentinel/service/AccountService.java
