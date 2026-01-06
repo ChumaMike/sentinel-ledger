@@ -3,26 +3,31 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 import {
     LayoutDashboard, Send, Landmark,
-    History, ShieldCheck, Bell, User, Info, AlertTriangle, ShieldAlert
+    History, ShieldCheck, Bell, User, AlertTriangle, ShieldAlert
 } from 'lucide-react';
+
 import Login from './components/Login';
 
 const FNB_TEAL = "#00a7a7";
 const FNB_AMBER = "#ffb81c";
 
 function App() {
+    // 1. Initialize authentication from localStorage
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         return localStorage.getItem('sentinel_token') !== null;
     });
-    const [activeTab, setActiveTab] = useState('dashboard');
+
     const [accounts, setAccounts] = useState([]);
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [alerts, setAlerts] = useState([]);
     const [history, setHistory] = useState([]);
     const [transfer, setTransfer] = useState({ fromId: '', toId: '', amount: '' });
     const [loading, setLoading] = useState(false);
-    const [alerts, setAlerts] = useState([]);
 
+    // 2. Fetch Data from Core-Engine (8080)
     const fetchData = async () => {
         try {
             const accRes = await axios.get('http://localhost:8080/api/accounts');
@@ -34,51 +39,55 @@ function App() {
         }
     };
 
+    // 3. Fetch System Alerts from Web-Service (8081)
     const fetchWatchdogAlerts = async () => {
         try {
             const res = await axios.get('http://localhost:8081/api/monitor/alerts');
             setAlerts(res.data);
         } catch (e) {
-            setAlerts([{ serviceName: "WATCHDOG", message: "Health Monitor Offline", alertLevel: "CRITICAL" }]);
+            console.warn("Watchdog check failed (Monitor starting up...)");
         }
     };
 
+    // 4. Lifecycle management: Only fetch data when authenticated
     useEffect(() => {
-        // Only fetch if we are authenticated
         if (isAuthenticated) {
             fetchData();
             fetchWatchdogAlerts();
             const interval = setInterval(fetchWatchdogAlerts, 10000);
             return () => clearInterval(interval);
         }
-    }, [isAuthenticated]); // Only re-run if login status actually changes
+    }, [isAuthenticated]);
 
+    // 5. Transfer Logic
     const handleTransfer = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
+            // Using Query Parameters to match the Java @RequestParam names
             const url = `http://localhost:8080/api/accounts/transfer?fromId=${transfer.fromId}&toId=${transfer.toId}&amount=${transfer.amount}`;
             const res = await axios.post(url);
             toast.success(res.data, { icon: "✅" });
-            fetchData();
+            fetchData(); // Refresh balances immediately
             setActiveTab('dashboard');
+            setTransfer({ fromId: '', toId: '', amount: '' }); // Reset form
         } catch (err) {
-            const errorMsg = err.response?.data?.message || "Connection lost";
+            const errorMsg = err.response?.data?.message || "Connection lost - Check Core Engine";
             toast.error(errorMsg, { icon: <ShieldAlert size={20} /> });
         } finally { setLoading(false); }
     };
 
-    // 🌟 1. THE GATEKEEPER CHECK (Must be BEFORE the main return)
+    // 🌟 GATEKEEPER: If not logged in, show Login and STOP here.
     if (!isAuthenticated) {
         return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
     }
 
-    // 🌟 2. THE DASHBOARD (Only reaches here if isAuthenticated is true)
+    // 🌟 DASHBOARD: Only rendered if isAuthenticated is true.
     return (
         <div className="d-flex bg-light min-vh-100 w-100 overflow-hidden">
-            <ToastContainer position="top-right" />
+            <ToastContainer position="top-right" theme="colored" />
 
-            {/* SIDEBAR */}
+            {/* --- SIDEBAR --- */}
             <nav className="d-flex flex-column p-4 text-white shadow-lg"
                  style={{ width: '280px', minWidth: '280px', backgroundColor: '#1a1a1a', zIndex: 1000 }}>
                 <div className="d-flex align-items-center mb-5 px-2">
@@ -104,6 +113,7 @@ function App() {
                 </div>
             </nav>
 
+            {/* --- MAIN CONTENT --- */}
             <main className="flex-grow-1 overflow-auto">
                 <AnimatePresence>
                     {alerts.length > 0 && (
@@ -126,8 +136,11 @@ function App() {
                     <h4 className="fw-bold mb-0 text-dark">{activeTab === 'dashboard' ? 'Overview' : 'Transfer Funds'}</h4>
                     <div className="d-flex gap-4 align-items-center">
                         <Bell size={20} className="text-muted"/>
-                        {/* 🌟 LOGOUT BUTTON (Optional but professional) */}
-                        <button onClick={() => setIsAuthenticated(false)} className="btn btn-link p-0 text-muted">
+                        {/* Logout Functionality */}
+                        <button onClick={() => {
+                            localStorage.removeItem('sentinel_token');
+                            setIsAuthenticated(false);
+                        }} className="btn btn-link p-0 text-muted border-0">
                             <div className="bg-dark text-white p-2 rounded-3 shadow-sm"><User size={20} /></div>
                         </button>
                     </div>
@@ -145,17 +158,52 @@ function App() {
                                             <div className="col-md-6" key={acc.accountId}>
                                                 <div className="card border-0 shadow-sm p-4 h-100 position-relative" style={{ borderRadius: '16px' }}>
                                                     <div style={{ position: 'absolute', top: 0, right: 0, width: '6px', height: '100%', backgroundColor: barColor, borderTopRightRadius: '16px', borderBottomRightRadius: '16px' }}></div>
-                                                    <h6 className="text-muted small fw-bold text-uppercase">Savings Account</h6>
+                                                    <div className="d-flex justify-content-between align-items-start mb-3">
+                                                        <h6 className="text-muted small fw-bold text-uppercase">Account Savings</h6>
+                                                        <span className={`badge rounded-pill px-2 py-1 small ${isLowBalance ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}>{isLowBalance ? "LOW BALANCE" : "HEALTHY"}</span>
+                                                    </div>
                                                     <h2 className="fw-bold mb-4">R {acc.balance.toLocaleString()}</h2>
-                                                    <div className="progress" style={{ height: '6px' }}>
+                                                    <div className="progress" style={{ height: '6px', backgroundColor: '#f0f0f0' }}>
                                                         <div className="progress-bar" style={{ width: isLowBalance ? '30%' : '100%', backgroundColor: barColor }} />
+                                                    </div>
+                                                    <div className="d-flex justify-content-between align-items-center text-muted small mt-4">
+                                                        <span>6284 **** {acc.accountId}</span>
+                                                        <Landmark size={18} />
                                                     </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
-                                {/* Audit Log Table code here (Keep your original table code) */}
+
+                                {/* Transaction Audit Log Table */}
+                                <div className="card border-0 shadow-sm p-4">
+                                    <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
+                                        <History size={20} style={{ color: FNB_TEAL }}/> Transaction Audit Log
+                                    </h5>
+                                    <div className="table-responsive">
+                                        <table className="table align-middle">
+                                            <thead className="table-light">
+                                            <tr className="small text-muted" style={{ fontSize: '11px', letterSpacing: '1px' }}>
+                                                <th>TIMESTAMP</th>
+                                                <th>TYPE</th>
+                                                <th>AMOUNT</th>
+                                                <th>SENTINEL STATUS</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {history.map((tx) => (
+                                                <tr key={tx.transactionId}>
+                                                    <td className="small text-muted">{new Date(tx.timestamp).toLocaleString()}</td>
+                                                    <td className="fw-bold">Electronic Transfer</td>
+                                                    <td className="fw-bold">R {tx.amount.toLocaleString()}</td>
+                                                    <td><span className="badge rounded-pill bg-success-subtle text-success px-3 py-2">SUCCESS</span></td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </motion.div>
                         ) : (
                             <motion.div key="pay" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="col-md-6 mx-auto">
@@ -165,12 +213,27 @@ function App() {
                                         <div className="alert alert-danger p-4 text-center">
                                             <ShieldAlert size={48} className="mb-3 mx-auto d-block" />
                                             <h5>Sentinel Lockdown Active</h5>
+                                            <p className="small mb-0">Transactions are suspended by AI Monitor.</p>
                                         </div>
                                     ) : (
                                         <form onSubmit={handleTransfer}>
-                                            {/* Your original form inputs here */}
-                                            <button className="btn btn-lg w-100 fw-bold text-white py-3" style={{ backgroundColor: FNB_TEAL }}>
-                                                PAY RECIPIENT
+                                            <div className="mb-3">
+                                                <label className="form-label small fw-bold text-muted">SENDER ACCOUNT ID</label>
+                                                <input type="number" className="form-control form-control-lg bg-light border-0"
+                                                       value={transfer.fromId} onChange={e => setTransfer({...transfer, fromId: e.target.value})} required />
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="form-label small fw-bold text-muted">RECIPIENT ACCOUNT ID</label>
+                                                <input type="number" className="form-control form-control-lg bg-light border-0"
+                                                       value={transfer.toId} onChange={e => setTransfer({...transfer, toId: e.target.value})} required />
+                                            </div>
+                                            <div className="mb-4">
+                                                <label className="form-label small fw-bold text-muted">AMOUNT (ZAR)</label>
+                                                <input type="number" className="form-control form-control-lg bg-light border-0 fw-bold"
+                                                       value={transfer.amount} onChange={e => setTransfer({...transfer, amount: e.target.value})} required />
+                                            </div>
+                                            <button className="btn btn-lg w-100 fw-bold text-white py-3 shadow-sm" style={{ backgroundColor: FNB_TEAL }} disabled={loading}>
+                                                {loading ? 'PROCESSING...' : 'PAY RECIPIENT'}
                                             </button>
                                         </form>
                                     )}
