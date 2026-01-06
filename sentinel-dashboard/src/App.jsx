@@ -15,7 +15,6 @@ const FNB_TEAL = "#00a7a7";
 const FNB_AMBER = "#ffb81c";
 
 function App() {
-    // 1. Initialize authentication from localStorage
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         return localStorage.getItem('sentinel_token') !== null;
     });
@@ -27,19 +26,28 @@ function App() {
     const [transfer, setTransfer] = useState({ fromId: '', toId: '', amount: '' });
     const [loading, setLoading] = useState(false);
 
-    // 2. Fetch Data from Core-Engine (8080)
+    // 🌟 Utility to get headers with JWT
+    const getAuthConfig = () => ({
+        headers: { Authorization: `Bearer ${localStorage.getItem('sentinel_token')}` }
+    });
+
     const fetchData = async () => {
         try {
-            const accRes = await axios.get('http://localhost:8080/api/accounts');
+            const config = getAuthConfig();
+            const accRes = await axios.get('http://localhost:8080/api/accounts', config);
             setAccounts(accRes.data);
-            const histRes = await axios.get('http://localhost:8080/api/accounts/history');
+            const histRes = await axios.get('http://localhost:8080/api/accounts/history', config);
             setHistory(histRes.data);
         } catch (e) {
             console.error("Dashboard Sync Error:", e);
+            // If we get a 403, it means our token is invalid/expired
+            if (e.response?.status === 403) {
+                localStorage.removeItem('sentinel_token');
+                setIsAuthenticated(false);
+            }
         }
     };
 
-    // 3. Fetch System Alerts from Web-Service (8081)
     const fetchWatchdogAlerts = async () => {
         try {
             const res = await axios.get('http://localhost:8081/api/monitor/alerts');
@@ -49,7 +57,6 @@ function App() {
         }
     };
 
-    // 4. Lifecycle management: Only fetch data when authenticated
     useEffect(() => {
         if (isAuthenticated) {
             fetchData();
@@ -59,30 +66,27 @@ function App() {
         }
     }, [isAuthenticated]);
 
-    // 5. Transfer Logic
     const handleTransfer = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Using Query Parameters to match the Java @RequestParam names
+            const config = getAuthConfig();
             const url = `http://localhost:8080/api/accounts/transfer?fromId=${transfer.fromId}&toId=${transfer.toId}&amount=${transfer.amount}`;
-            const res = await axios.post(url);
+            const res = await axios.post(url, {}, config);
             toast.success(res.data, { icon: "✅" });
-            fetchData(); // Refresh balances immediately
+            fetchData();
             setActiveTab('dashboard');
-            setTransfer({ fromId: '', toId: '', amount: '' }); // Reset form
+            setTransfer({ fromId: '', toId: '', amount: '' });
         } catch (err) {
-            const errorMsg = err.response?.data?.message || "Connection lost - Check Core Engine";
+            const errorMsg = err.response?.data?.message || "Transfer Rejected by Sentinel";
             toast.error(errorMsg, { icon: <ShieldAlert size={20} /> });
         } finally { setLoading(false); }
     };
 
-    // 🌟 GATEKEEPER: If not logged in, show Login and STOP here.
     if (!isAuthenticated) {
         return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
     }
 
-    // 🌟 DASHBOARD: Only rendered if isAuthenticated is true.
     return (
         <div className="d-flex bg-light min-vh-100 w-100 overflow-hidden">
             <ToastContainer position="top-right" theme="colored" />
@@ -113,7 +117,6 @@ function App() {
                 </div>
             </nav>
 
-            {/* --- MAIN CONTENT --- */}
             <main className="flex-grow-1 overflow-auto">
                 <AnimatePresence>
                     {alerts.length > 0 && (
@@ -136,7 +139,6 @@ function App() {
                     <h4 className="fw-bold mb-0 text-dark">{activeTab === 'dashboard' ? 'Overview' : 'Transfer Funds'}</h4>
                     <div className="d-flex gap-4 align-items-center">
                         <Bell size={20} className="text-muted"/>
-                        {/* Logout Functionality */}
                         <button onClick={() => {
                             localStorage.removeItem('sentinel_token');
                             setIsAuthenticated(false);
@@ -176,7 +178,6 @@ function App() {
                                     })}
                                 </div>
 
-                                {/* Transaction Audit Log Table */}
                                 <div className="card border-0 shadow-sm p-4">
                                     <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
                                         <History size={20} style={{ color: FNB_TEAL }}/> Transaction Audit Log

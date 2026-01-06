@@ -1,3 +1,4 @@
+com/chumabanking/sentinel/security/JwtFilter.class
 com/chumabanking/sentinel/controller/GlobalExceptionHandler.class
 com/chumabanking/sentinel/repository/AccountRepository.class
 com/chumabanking/sentinel/SentinelApplication.class
