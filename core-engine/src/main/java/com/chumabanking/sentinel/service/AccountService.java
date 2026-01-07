@@ -2,56 +2,44 @@ package com.chumabanking.sentinel.service;
 
 import com.sentinel.common.model.Account;
 import com.sentinel.common.model.Transaction;
-import com.sentinel.common.dto.AlertDTO;
 import com.chumabanking.sentinel.repository.AccountRepository;
 import com.chumabanking.sentinel.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.math.BigDecimal;
 import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.Map;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.http.ResponseEntity;
-
-
 
 @Service
 public class AccountService {
 
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private RestTemplate restTemplate;
+    @Autowired private AccountRepository accountRepository;
+    @Autowired private TransactionRepository transactionRepository;
+    @Autowired private RestTemplate restTemplate;
 
     @Transactional
-    public String transferMoney(Long fromId, Long toId, BigDecimal amount) {
-        // 1. Find Accounts
-        Account fromAcc = accountRepository.findById(fromId)
-                .orElseThrow(() -> new RuntimeException("Sender Account #" + fromId + " not found"));
-        Account toAcc = accountRepository.findById(toId)
-                .orElseThrow(() -> new RuntimeException("Recipient Account #" + toId + " not found"));
+    public String transferMoney(String fromAccNum, String toAccNum, BigDecimal amount, String description) {
+        // 1. Find Accounts by Account Number (Not ID)
+        Account fromAcc = accountRepository.findByAccountNumber(fromAccNum)
+                .orElseThrow(() -> new RuntimeException("Sender Account " + fromAccNum + " not found"));
+        Account toAcc = accountRepository.findByAccountNumber(toAccNum)
+                .orElseThrow(() -> new RuntimeException("Recipient Account " + toAccNum + " not found"));
 
-        // 🌟 NEW: Business Logic Check - Prevent sending more than you have
         if (fromAcc.getBalance().compareTo(amount) < 0) {
-            // Log the failure in our history table so the user sees WHY it failed
-            transactionRepository.save(new Transaction(fromId, toId, amount, "FAILED: Insufficient Funds"));
-            throw new RuntimeException("Insufficient funds! Your balance is R" + fromAcc.getBalance());
+            throw new RuntimeException("Insufficient funds! Balance: R" + fromAcc.getBalance());
         }
+
+        // 2. Call Sentinel AI for Scrutiny
         String sentinelUrl = "http://sentinel-ai:8000/v1/scrutinize";
         Map<String, Object> request = Map.of(
                 "amount", amount,
-                "from_id", fromId,
-                "to_id", toId
+                "from_account", fromAccNum,
+                "to_account", toAccNum
         );
 
         try {
-            // Log outgoing request
-            System.out.println("DEBUG: Calling Sentinel with: " + request);
-
             Map<String, Object> response = restTemplate.postForObject(sentinelUrl, request, Map.class);
             String decision = (String) response.get("decision");
 
@@ -62,46 +50,22 @@ public class AccountService {
                 accountRepository.save(fromAcc);
                 accountRepository.save(toAcc);
 
-                transactionRepository.save(new Transaction(fromId, toId, amount, "SUCCESS"));
-                return "Transfer Successful: Processed by Sentinel AI";
+                // 🌟 Create "Real" Log with Name/Description
+                Transaction tx = new Transaction();
+                tx.setFromAccountId(fromAcc.getAccountId());
+                tx.setToAccountId(toAcc.getAccountId());
+                tx.setAmount(amount);
+                tx.setDescription(description); // 🌟 Now included!
+                tx.setStatus("SUCCESS");
+                tx.setTimestamp(LocalDateTime.now());
+                transactionRepository.save(tx);
+
+                return "Transfer Successful to " + toAccNum;
             } else {
-                String reason = (String) response.get("reason");
-                transactionRepository.save(new Transaction(fromId, toId, amount, "BLOCKED: " + reason));
-                throw new RuntimeException("Sentinel AI blocked this move: " + reason);
+                throw new RuntimeException("Sentinel AI blocked: " + response.get("reason"));
             }
         } catch (Exception e) {
-            // If it's a Sentinel exception, pass the reason through, otherwise generic error
-            String error = e.getMessage().contains("Sentinel") ? e.getMessage() : "Banking System Error: " + e.getMessage();
-            throw new RuntimeException(error);
+            throw new RuntimeException("Transaction Error: " + e.getMessage());
         }
     }
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate; // For checking the DB
-
-    public Map<String, String> checkSystemHealth() {
-        Map<String, String> status = new java.util.HashMap<>();
-
-        // 1. Check Database
-        try {
-            jdbcTemplate.execute("SELECT 1");
-            status.put("database", "UP");
-        } catch (Exception e) {
-            status.put("database", "DOWN - " + e.getMessage());
-        }
-
-        // 2. Check Python Sentinel
-        try {
-            String sentinelUrl = "http://sentinel-ai:8000/docs"; // FastAPI docs are a safe ping
-            ResponseEntity<String> response = restTemplate.getForEntity(sentinelUrl, String.class);
-            status.put("sentinel", response.getStatusCode().is2xxSuccessful() ? "UP" : "DOWN");
-        } catch (Exception e) {
-            status.put("sentinel", "DOWN - Python service not responding");
-        }
-
-        return status;
-    }
-
-    @Autowired
-    private TransactionRepository transactionRepository;
 }
