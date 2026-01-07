@@ -6,7 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import {
     LayoutDashboard, Send, Landmark,
-    History, ShieldCheck, Bell, User, AlertTriangle, ShieldAlert
+    History, ShieldCheck, Bell, User, AlertTriangle, ShieldAlert, LogOut
 } from 'lucide-react';
 
 import Login from './components/Login';
@@ -15,28 +15,29 @@ const FNB_TEAL = "#00a7a7";
 const FNB_AMBER = "#ffb81c";
 
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        return localStorage.getItem('sentinel_token') !== null;
+    // 1. Auth State
+    const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('sentinel_token'));
+
+    // 2. Profile State (Initialized from storage or default)
+    const [profile, setProfile] = useState(() => {
+        const saved = localStorage.getItem('sentinel_profile');
+        return saved ? JSON.parse(saved) : { name: "Guest", email: "N/A" };
     });
 
+    // 3. Banking Data States
+    const [accounts, setAccounts] = useState([]);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [alerts, setAlerts] = useState([]);
     const [history, setHistory] = useState([]);
     const [transfer, setTransfer] = useState({ fromId: '', toId: '', amount: '' });
     const [loading, setLoading] = useState(false);
 
-    const [profile, setProfile] = useState(() => {
-        const saved = localStorage.getItem('sentinel_profile');
-        return saved ? JSON.parse(saved) : { name: "Guest", email: "N/A" };
-    });
-
-    const [accounts, setAccounts] = useState([]);
-
-    // 🌟 Utility to get headers with JWT
+    // 🌟 Auth Helper
     const getAuthConfig = () => ({
         headers: { Authorization: `Bearer ${localStorage.getItem('sentinel_token')}` }
     });
 
+    // 🌟 Data Fetchers
     const fetchData = async () => {
         try {
             const config = getAuthConfig();
@@ -46,11 +47,7 @@ function App() {
             setHistory(histRes.data);
         } catch (e) {
             console.error("Dashboard Sync Error:", e);
-            // If we get a 403, it means our token is invalid/expired
-            if (e.response?.status === 403) {
-                localStorage.removeItem('sentinel_token');
-                setIsAuthenticated(false);
-            }
+            if (e.response?.status === 403) handleLogout();
         }
     };
 
@@ -59,16 +56,24 @@ function App() {
             const res = await axios.get('http://localhost:8081/api/monitor/alerts');
             setAlerts(res.data);
         } catch (e) {
-            console.warn("Watchdog check failed (Monitor starting up...)");
+            console.warn("Monitor standby...");
         }
     };
 
+    // 🌟 Lifecycle: The Handshake
     useEffect(() => {
         if (isAuthenticated) {
+            // Re-read profile from storage (crucial for redirect)
             const savedProfile = localStorage.getItem('sentinel_profile');
-            if (savedProfile) setProfile(JSON.parse(savedProfile));
+            if (savedProfile) {
+                setProfile(JSON.parse(savedProfile));
+            }
             fetchData();
             fetchWatchdogAlerts();
+
+            // Auto-refresh alerts every 10s
+            const interval = setInterval(fetchWatchdogAlerts, 10000);
+            return () => clearInterval(interval);
         }
     }, [isAuthenticated]);
 
@@ -76,7 +81,8 @@ function App() {
         localStorage.removeItem('sentinel_token');
         localStorage.removeItem('sentinel_profile');
         setIsAuthenticated(false);
-        setAccounts([]); // Clear the state
+        setAccounts([]);
+        setProfile({ name: "Guest", email: "N/A" });
     };
 
     const handleTransfer = async (e) => {
@@ -86,16 +92,16 @@ function App() {
             const config = getAuthConfig();
             const url = `http://localhost:8080/api/accounts/transfer?fromId=${transfer.fromId}&toId=${transfer.toId}&amount=${transfer.amount}`;
             const res = await axios.post(url, {}, config);
-            toast.success(res.data, { icon: "✅" });
+            toast.success(res.data);
             fetchData();
             setActiveTab('dashboard');
             setTransfer({ fromId: '', toId: '', amount: '' });
         } catch (err) {
-            const errorMsg = err.response?.data?.message || "Transfer Rejected by Sentinel";
-            toast.error(errorMsg, { icon: <ShieldAlert size={20} /> });
+            toast.error(err.response?.data?.message || "Transfer Denied");
         } finally { setLoading(false); }
     };
 
+    // --- RENDER LOGIC ---
     if (!isAuthenticated) {
         return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
     }
@@ -124,6 +130,7 @@ function App() {
                     </button>
                 </div>
 
+                {/* Personalized User Profile Section */}
                 <div className="mt-auto p-3 rounded-4" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                     <div className="d-flex align-items-center gap-3 mb-2">
                         <div className="bg-dark text-white p-2 rounded-circle border border-secondary">
@@ -140,32 +147,14 @@ function App() {
             </nav>
 
             <main className="flex-grow-1 overflow-auto">
-                <AnimatePresence>
-                    {alerts.length > 0 && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="bg-danger text-white px-5 py-2 d-flex align-items-center justify-content-between shadow-lg"
-                        >
-                            <div className="d-flex align-items-center gap-3">
-                                <AlertTriangle size={18} className="animate-bounce" />
-                                <span className="small fw-bold">SYSTEM ALERT: {alerts[0].message}</span>
-                            </div>
-                            <span className="small opacity-75">{alerts[0].serviceName}</span>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
                 <header className="bg-white border-bottom py-3 px-5 d-flex justify-content-between align-items-center sticky-top">
                     <h4 className="fw-bold mb-0 text-dark">{activeTab === 'dashboard' ? 'Overview' : 'Transfer Funds'}</h4>
                     <div className="d-flex gap-4 align-items-center">
                         <Bell size={20} className="text-muted"/>
-                        <button onClick={() => {
-                            localStorage.removeItem('sentinel_token');
-                            setIsAuthenticated(false);
-                        }} className="btn btn-link p-0 text-muted border-0">
-                            <div className="bg-dark text-white p-2 rounded-3 shadow-sm"><User size={20} /></div>
+                        {/* Logout Implementation */}
+                        <button onClick={handleLogout} className="btn btn-outline-danger btn-sm d-flex align-items-center gap-2 rounded-3 px-3">
+                            <LogOut size={16} />
+                            <span className="fw-bold">LOGOUT</span>
                         </button>
                     </div>
                 </header>
