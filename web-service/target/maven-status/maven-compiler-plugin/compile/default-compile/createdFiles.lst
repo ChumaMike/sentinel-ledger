@@ -1,5 +1,0 @@
-com/sentinel/web/controller/HealthController.class
-com/sentinel/web/controller/AuthController.class
-com/sentinel/web/WebService.class
-com/sentinel/web/service/SentinelWatchdog.class
-com/sentinel/web/service/JwtService.class

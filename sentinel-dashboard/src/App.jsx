@@ -26,6 +26,11 @@ function App() {
     const [transfer, setTransfer] = useState({ fromId: '', toId: '', amount: '' });
     const [loading, setLoading] = useState(false);
 
+    const [profile, setProfile] = useState(() => {
+        const savedProfile = localStorage.getItem('sentinel_profile');
+        return savedProfile ? JSON.parse(savedProfile) : { name: "Guest", email: "N/A" };
+    });
+
     // 🌟 Utility to get headers with JWT
     const getAuthConfig = () => ({
         headers: { Authorization: `Bearer ${localStorage.getItem('sentinel_token')}` }
@@ -112,6 +117,15 @@ function App() {
                 </div>
 
                 <div className="mt-auto p-3 rounded-4" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                    <div className="d-flex align-items-center gap-3 mb-2">
+                        <div className="bg-dark text-white p-2 rounded-circle border border-secondary">
+                            <User size={18} />
+                        </div>
+                        <div className="overflow-hidden">
+                            <div className="fw-bold small text-truncate">{profile.name}</div>
+                            <div className="opacity-50" style={{ fontSize: '10px' }}>{profile.email}</div>
+                        </div>
+                    </div>
                     <div className="small opacity-50 mb-1" style={{ fontSize: '10px' }}>SECURED BY</div>
                     <div className="fw-bold small" style={{ color: FNB_AMBER }}>SENTINEL_AI_v2.1</div>
                 </div>

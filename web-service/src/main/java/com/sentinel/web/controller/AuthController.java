@@ -19,16 +19,24 @@ public class AuthController {
     public ResponseEntity<?> authenticate(@RequestBody Map<String, String> request) {
         String enteredPin = request.get("pin");
 
-        // The 'Gatekeeper' logic
         if ("1234".equals(enteredPin)) {
-            String token = jwtService.generateToken("SENTINEL_USER_01");
+            // 🌟 Define the profile data (claims)
+            Map<String, Object> claims = Map.of(
+                    "name", "Chuma Meyiswa",
+                    "email", "nmeyiswa@gmail.com",
+                    "role", "SENTINEL_PREMIUM"
+            );
+
+            // 🌟 Pass BOTH username and claims to generateToken
+            String token = jwtService.generateToken("SENTINEL_USER_01", claims);
+
             return ResponseEntity.ok(Map.of(
                     "status", "SUCCESS",
-                    "token", token
+                    "token", token,
+                    "user", claims // Send to React for Sidebar display
             ));
         }
 
-        // If PIN is wrong, return 401 Unauthorized
         return ResponseEntity.status(401).body(Map.of(
                 "status", "FAILED",
                 "message", "Invalid Security PIN"

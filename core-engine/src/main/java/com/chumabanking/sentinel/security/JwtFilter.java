@@ -1,5 +1,6 @@
 package com.chumabanking.sentinel.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -23,23 +24,33 @@ public class JwtFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // 🌟 1. Extract the token string first
             String token = authHeader.substring(7);
+
             try {
-                String user = Jwts.parserBuilder()
-                        .setSigningKey(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                // 🌟 2. Parse the claims using the modern 'verifyWith' API
+                Claims claims = Jwts.parser()
+                        .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
                         .build()
-                        .parseClaimsJws(token)
-                        .getBody()
-                        .getSubject();
+                        .parseSignedClaims(token) // Use 'token' here
+                        .getPayload();
+
+                String user = claims.getSubject();
+                // Custom claims now available:
+                // String fullName = claims.get("name", String.class);
 
                 if (user != null) {
-                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            user, null, new ArrayList<>());
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception e) {
+                // If token is invalid, clear the context
                 SecurityContextHolder.clearContext();
             }
         }
+
+        // 🌟 3. Always continue the filter chain
         filterChain.doFilter(request, response);
     }
 }

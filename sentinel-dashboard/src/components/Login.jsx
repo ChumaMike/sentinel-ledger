@@ -14,12 +14,13 @@ const Login = ({ onLoginSuccess }) => {
         try {
             const res = await axios.post('http://localhost:8081/api/auth/login', { pin });
             if (res.data.status === "SUCCESS") {
-                // 🌟 Save the token to the browser's memory
                 localStorage.setItem('sentinel_token', res.data.token);
+                // 🌟 Save profile data as a string
+                localStorage.setItem('sentinel_profile', JSON.stringify(res.data.user));
                 onLoginSuccess();
             }
         } catch (err) {
-            toast.error("Access Denied: Invalid Security Credentials");
+            toast.error("Access Denied");
         }
     };
 
