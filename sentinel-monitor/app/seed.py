@@ -3,39 +3,38 @@ import time
 import sys
 
 def seed_data():
-    # Database Configuration
+    # 🌟 ENTERPRISE ALIGNMENT: Match these to docker-compose.yml exactly
     db_config = {
         "dbname": "sentinel_db",
-        "user": "admin",
+        "user": "user",          # ✅ Fixed: was admin
         "password": "password",
-        "host": "127.0.0.1",
+        "host": "db",            # ✅ Fixed: was 127.0.0.1 (Docker needs service name)
         "port": "5432"
     }
 
     conn = None
-    retries = 5
+    retries = 10 # 🌟 INCREASED: Give Postgres time to finish initializing
 
-    # 🧠 System Principle: Retry Logic (Wait-for-IT)
-    print("🚀 Starting Database Seed...")
+    print("🚀 Sentinel Seeder: Initializing vault data...")
     while retries > 0:
         try:
             conn = psycopg2.connect(**db_config)
             print("✅ Connection Established!")
             break
-        except psycopg2.OperationalError as e:
+        except Exception as e:
             retries -= 1
-            print(f"⚠️ Database not ready. Retrying in 3 seconds... ({retries} attempts left)")
-            time.sleep(3)
+            print(f"⚠️ Database not ready. Retrying in 5 seconds... ({retries} attempts left)")
+            time.sleep(5)
 
     if not conn:
-        print("❌ CRITICAL: Could not connect to the database. Is the Docker container running?")
+        print("❌ CRITICAL: Could not reach the database container 'db'.")
         sys.exit(1)
 
     try:
         cur = conn.cursor()
         print("🔨 Ensuring Schema Integrity...")
 
-        # 1. Create tables if they don't exist (Enterprise Idempotency)
+        # 1. Create tables with proper constraints
         cur.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                                                          user_id SERIAL PRIMARY KEY,
@@ -59,23 +58,24 @@ def seed_data():
                     """)
         conn.commit()
 
-        print("🧹 Cleaning old data...")
+        print("🧹 Purging old records (Cascade)...")
         cur.execute("TRUNCATE TABLE transactions, accounts, users RESTART IDENTITY CASCADE;")
         conn.commit()
 
-        print("👤 Creating User & Accounts...")
+        print("👤 Provisioning User & Accounts...")
         cur.execute("INSERT INTO users (full_name, email) VALUES (%s, %s) RETURNING user_id",
                     ("Chuma Meyiswa", "nmeyiswa@gmail.com"))
         u_id = cur.fetchone()[0]
 
+        # 🌟 Create Account 1 and 2
         cur.execute("INSERT INTO accounts (user_id, balance, currency) VALUES (%s, 15000.50, 'ZAR')", (u_id,))
         cur.execute("INSERT INTO accounts (user_id, balance, currency) VALUES (%s, 2500.00, 'ZAR')", (u_id,))
 
         conn.commit()
-        print("🌟 SUCCESS: Database synchronized!")
+        print("🎉 SUCCESS: Sentinel Ledger populated. Account 1 is ready with R 15,000.50")
 
     except Exception as error:
-        print(f"❌ Error: {error}")
+        print(f"❌ Error during seed: {error}")
         conn.rollback()
     finally:
         if conn:
