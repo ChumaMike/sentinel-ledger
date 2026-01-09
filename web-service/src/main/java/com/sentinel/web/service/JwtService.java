@@ -11,7 +11,10 @@ import java.util.Map;
 
 @Service
 public class JwtService {
-    private static final String SECRET = "SENTINEL_SUPER_SECRET_KEY_FOR_JWT_32_CHARS";
+
+    // 🌟 THE FIX: This now matches JwtFilter.java in the Core Engine
+    private static final String SECRET = "YourSuperSecretKeyForSentinelBankingSystem2026";
+
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     public String generateToken(String username, Map<String, Object> extraClaims) {
@@ -19,8 +22,8 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
-                .signWith(key, SignatureAlgorithm.HS256) // 🌟 Explicit algorithm for 0.11.x
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 Hours
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 }

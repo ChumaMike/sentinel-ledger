@@ -43,6 +43,8 @@ public class JwtUtil {
     }
 
     public String generateToken(String username) {
+        System.out.println("🔍 TRACER: Generating token for user: " + username);
+        System.out.println("🔍 TRACER: Using SECRET: " + SECRET);
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
