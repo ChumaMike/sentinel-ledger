@@ -1,71 +1,105 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import { authApi } from '../utils/api'; // 👈 Using your new API helper
 import { toast } from 'react-toastify';
 
 const FNB_TEAL = "#00a7a7";
 
-const Login = ({ onLoginSuccess }) => {
-    const [pin, setPin] = useState("");
+const Login = ({ onLoginSuccess, onSwitchToRegister }) => {
+    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
-            const res = await axios.post('http://localhost:8081/api/auth/login', { pin });
+            // 🌟 POST to /api/auth/login
+            const res = await authApi.post('/login', formData);
+
             if (res.data.status === "SUCCESS") {
-                localStorage.setItem('sentinel_token', res.data.token);
-                // 🌟 Save profile data as a string
-                localStorage.setItem('sentinel_profile', JSON.stringify(res.data.user));
-                onLoginSuccess();
+                // 💾 Save User & Token
+                localStorage.setItem('user', JSON.stringify({
+                    token: res.data.token,
+                    ...res.data.user
+                }));
+
+                toast.success("Welcome back!");
+                onLoginSuccess(); // Notify App.jsx to show Dashboard
             }
         } catch (err) {
-            toast.error("Access Denied");
+            toast.error(err.response?.data?.message || "Login Failed");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#1a1a1a' }}>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="card border-0 shadow-lg p-5 text-center"
-                style={{ width: '400px', borderRadius: '24px', backgroundColor: '#fff' }}
-            >
-                <div className="d-flex justify-content-center mb-4">
-                    <div className="p-3 rounded-circle" style={{ backgroundColor: 'rgba(0,167,167,0.1)' }}>
-                        <ShieldCheck size={48} style={{ color: FNB_TEAL }} />
-                    </div>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card border-0 shadow-lg p-4"
+            style={{ width: '100%', maxWidth: '420px', borderRadius: '24px' }}
+        >
+            <div className="d-flex justify-content-center mb-4">
+                <div className="p-3 rounded-circle" style={{ backgroundColor: 'rgba(0,167,167,0.1)' }}>
+                    <ShieldCheck size={48} style={{ color: FNB_TEAL }} />
                 </div>
+            </div>
 
+            <div className="text-center mb-4">
                 <h3 className="fw-bold mb-1">Sentinel Access</h3>
-                <p className="text-muted small mb-4">Enter your digital security PIN to continue</p>
+                <p className="text-muted small">Secure Banking Environment</p>
+            </div>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4 position-relative">
+            <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                    <div className="input-group input-group-lg">
+                        <span className="input-group-text bg-light border-0"><Mail size={18}/></span>
                         <input
-                            type="password"
-                            className="form-control form-control-lg text-center fw-bold border-0 bg-light"
-                            placeholder="****"
-                            maxLength="4"
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
-                            style={{ letterSpacing: '8px', fontSize: '24px' }}
+                            type="email"
+                            className="form-control bg-light border-0 fs-6"
+                            placeholder="Email Address"
+                            required
+                            onChange={e => setFormData({...formData, email: e.target.value})}
                         />
                     </div>
-                    <button className="btn btn-lg w-100 text-white fw-bold py-3" style={{ backgroundColor: FNB_TEAL, borderRadius: '12px' }}>
-                        AUTHORIZE SESSION
-                    </button>
-                </form>
+                </div>
 
-                <div className="mt-4 pt-3 border-top">
-                    <div className="d-flex align-items-center justify-content-center gap-2 text-muted small">
-                        <Lock size={14} />
-                        <span>End-to-End Encrypted Tunnel</span>
+                <div className="mb-4">
+                    <div className="input-group input-group-lg">
+                        <span className="input-group-text bg-light border-0"><Lock size={18}/></span>
+                        <input
+                            type="password"
+                            className="form-control bg-light border-0 fs-6"
+                            placeholder="Password"
+                            required
+                            onChange={e => setFormData({...formData, password: e.target.value})}
+                        />
                     </div>
                 </div>
-            </motion.div>
-        </div>
+
+                <button
+                    className="btn btn-lg w-100 text-white fw-bold py-3 d-flex align-items-center justify-content-center gap-2"
+                    style={{ backgroundColor: FNB_TEAL, borderRadius: '12px' }}
+                    disabled={loading}
+                >
+                    {loading ? 'Verifying...' : <>ACCESS VAULT <ArrowRight size={18}/></>}
+                </button>
+            </form>
+
+            <div className="mt-4 pt-3 border-top text-center">
+                <p className="text-muted small mb-2">New to Sentinel?</p>
+                {/* 🌟 Button to switch to Registration */}
+                <button
+                    onClick={onSwitchToRegister}
+                    className="btn btn-outline-dark w-100 fw-bold"
+                    style={{ borderRadius: '12px' }}
+                >
+                    Create Digital Identity
+                </button>
+            </div>
+        </motion.div>
     );
 };
 
