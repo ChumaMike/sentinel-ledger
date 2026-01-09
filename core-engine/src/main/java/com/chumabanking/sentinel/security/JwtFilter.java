@@ -15,7 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class JwtFilter extends OncePerRequestFilter {
-    private static final String SECRET = "SENTINEL_SUPER_SECRET_KEY_FOR_JWT_32_CHARS";
+
+    // 🔐 This key MUST match the one in application.properties
+    private static final String SECRET = "YourSuperSecretKeyForSentinelBankingSystem2026";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -23,21 +25,28 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
+        // 🔍 DEBUG PRINT 1: Check if header arrives
+        if (authHeader == null) {
+            // System.out.println("❌ JwtFilter: No Authorization header found.");
+        } else {
+            // System.out.println("🔍 JwtFilter: Header received: " + authHeader);
+        }
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // 🌟 1. Extract the token string first
             String token = authHeader.substring(7);
 
             try {
-                // 🌟 2. Parse the claims using the modern 'verifyWith' API
-                Claims claims = Jwts.parser()
-                        .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                // 🔍 DEBUG PRINT 2: Trying to parse
+                // System.out.println("🕵️ JwtFilter: Verifying token...");
+
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
                         .build()
-                        .parseSignedClaims(token) // Use 'token' here
-                        .getPayload();
+                        .parseClaimsJws(token)
+                        .getBody();
 
                 String user = claims.getSubject();
-                // Custom claims now available:
-                // String fullName = claims.get("name", String.class);
+                // System.out.println("✅ JwtFilter: Success! User is: " + user);
 
                 if (user != null) {
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
@@ -45,12 +54,13 @@ public class JwtFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception e) {
-                // If token is invalid, clear the context
+                // 🚨 THIS IS THE MOST IMPORTANT LINE
+                System.out.println("🔥 JwtFilter ERROR: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+
                 SecurityContextHolder.clearContext();
             }
         }
 
-        // 🌟 3. Always continue the filter chain
         filterChain.doFilter(request, response);
     }
 }

@@ -56,7 +56,7 @@ function App() {
             setHistory(histRes.data);
         } catch (e) {
             console.error("Sync Error:", e);
-            if (e.response?.status === 403) handleLogout();
+            if (e.response?.status === 403) toast.error("403 Forbidden: Key Mismatch!");
         }
     };
 
