@@ -9,9 +9,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+// 🌟 MISSING IMPORTS ADDED HERE
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -19,7 +24,7 @@ import java.util.List;
 public class AccountController {
 
     @Autowired private AccountRepository accountRepository;
-    @Autowired private TransactionRepository transactionRepository; // 👈 Inject Repository
+    @Autowired private TransactionRepository transactionRepository;
     @Autowired private AccountService accountService;
 
     @GetMapping
@@ -28,27 +33,22 @@ public class AccountController {
         return accountRepository.findByUserId(userId);
     }
 
-    // 🌟 THE MISSING ENDPOINT
     @GetMapping("/history")
     public List<Transaction> getHistory() {
         Long userId = getCurrentUserId();
 
-        // 1. Get all my account numbers
         List<Account> myAccounts = accountRepository.findByUserId(userId);
-        List<Transaction> allHistory = new ArrayList<>();
+        Set<Transaction> uniqueHistory = new HashSet<>();
 
-        // 2. For each account, find its transactions
         for (Account acc : myAccounts) {
             List<Transaction> txs = transactionRepository
                     .findBySenderAccountNumberOrReceiverAccountNumberOrderByTimestampDesc(
                             acc.getAccountNumber(),
                             acc.getAccountNumber()
                     );
-            allHistory.addAll(txs);
+            uniqueHistory.addAll(txs);
         }
-
-        // 3. (Optional) Sort strictly by date if needed, but the DB query helps.
-        return allHistory;
+        return new ArrayList<>(uniqueHistory);
     }
 
     @PostMapping("/transfer")
@@ -62,7 +62,21 @@ public class AccountController {
         return ResponseEntity.ok(result);
     }
 
-    // Helper to get User ID from the Token
+    // 🌟 NEW: Manual Expense Endpoint (Fixed)
+    @PostMapping("/expense")
+    public ResponseEntity<?> logExpense(@RequestBody Map<String, Object> request) {
+        String accountNum = (String) request.get("accountNumber");
+        String category = (String) request.get("category");
+        String description = (String) request.get("description");
+
+        // Safety conversion for amount
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+
+        Transaction tx = accountService.logManualExpense(accountNum, amount, category, description);
+        return ResponseEntity.ok(tx);
+    }
+
+    // Helper to get User ID
     private Long getCurrentUserId() {
         String userIdStr = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return Long.parseLong(userIdStr);
