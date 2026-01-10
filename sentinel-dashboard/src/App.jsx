@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Send, ShieldCheck, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Send, ShieldCheck, User, LogOut, Lock } from 'lucide-react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-
 // 🌟 Import your modular pieces
 import Login from './components/Login';
 import Register from './components/Register';
-import Dashboard from './pages/Dashboard';  // The Charts & Goals
-import Payments from './pages/Payments';    // The Form we just made
-import { Lock } from 'lucide-react'; // Import Lock icon
+import Dashboard from './pages/Dashboard';
+import Payments from './pages/Payments';
 import Admin from './pages/Admin';
 
 const FNB_TEAL = "#00a7a7";
@@ -80,6 +78,7 @@ function App() {
                     </div>
                 </div>
 
+                {/* MAIN NAV LINKS (Push everything else down with mb-auto) */}
                 <div className="nav flex-column gap-3 mb-auto">
                     <button onClick={() => setActiveTab('dashboard')}
                             className={`btn d-flex align-items-center gap-3 p-3 text-start border-0 ${activeTab === 'dashboard' ? 'text-white shadow' : 'text-white-50'}`}
@@ -92,27 +91,10 @@ function App() {
                             style={{ backgroundColor: activeTab === 'payments' ? FNB_TEAL : 'transparent', borderRadius: '12px' }}>
                         <Send size={20}/> Payments
                     </button>
-                    <button onClick={() => setActiveTab('admin')}
-                            className={`btn d-flex align-items-center gap-3 p-3 text-start border-0 ${activeTab === 'admin' ? 'text-white shadow' : 'text-white-50'}`}
-                            style={{ backgroundColor: activeTab === 'admin' ? FNB_TEAL : 'transparent', borderRadius: '12px' }}>
-                        <Lock size={20}/> Admin Console
-                    </button>
                 </div>
 
-                <div className="mt-auto p-3 rounded-4" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                    <div className="d-flex align-items-center gap-3 mb-2">
-                        <div className="bg-dark text-white p-2 rounded-circle border border-secondary">
-                            <User size={18} />
-                        </div>
-                        <div className="overflow-hidden">
-                            <div className="fw-bold small text-truncate">{userProfile.name || 'User'}</div>
-                            <div className="opacity-50" style={{ fontSize: '10px' }}>{userProfile.email}</div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 🌟 DISTINCT ADMIN SECTION AT THE BOTTOM */}
-                <div className="pt-4 border-top border-secondary mt-3">
+                {/* 🌟 ADMIN SECTION (Now sits ABOVE the profile) */}
+                <div className="pt-4 border-top border-secondary mt-3 mb-4">
                     <small className="text-muted fw-bold mb-3 d-block ps-2" style={{fontSize: '10px'}}>SYSTEM ACCESS</small>
                     <button onClick={() => setActiveTab('admin')}
                             className={`btn d-flex align-items-center gap-3 p-3 text-start w-100 border-0 ${activeTab === 'admin' ? 'bg-danger text-white shadow' : 'text-white-50 hover-bg-dark'}`}
@@ -123,23 +105,39 @@ function App() {
                         <span className="small fw-bold">Admin Console</span>
                     </button>
                 </div>
+
+                {/* USER PROFILE (Now acts as the footer) */}
+                <div className="p-3 rounded-4" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                    <div className="d-flex align-items-center gap-3 mb-2">
+                        <div className="bg-dark text-white p-2 rounded-circle border border-secondary">
+                            <User size={18} />
+                        </div>
+                        <div className="overflow-hidden">
+                            <div className="fw-bold small text-truncate">{userProfile.name || 'User'}</div>
+                            <div className="opacity-50" style={{ fontSize: '10px' }}>{userProfile.email}</div>
+                        </div>
+                    </div>
+                </div>
             </nav>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-grow-1 overflow-auto">
-                <header className="bg-white border-bottom py-3 px-5 d-fex justify-content-between align-items-center sticky-top">
+            <main className="flex-grow-1 overflow-auto d-flex flex-column">
+
+                {/* 🌟 HEADER: Fixed 'd-flex' typo here! */}
+                <header className="bg-white border-bottom py-3 px-5 d-flex justify-content-between align-items-center sticky-top">
                     <h4 className="fw-bold mb-0 text-dark">
                         {activeTab === 'dashboard' ? 'Overview' :
                             activeTab === 'payments' ? 'Transfer Funds' :
                                 'Admin Console'}
                     </h4>
+
+                    {/* LOGOUT BUTTON */}
                     <button onClick={handleLogout} className="btn btn-outline-danger btn-sm d-flex align-items-center gap-2 rounded-3 px-3">
                         <LogOut size={16} /> <span className="fw-bold">LOGOUT</span>
                     </button>
                 </header>
 
                 <div className="container-fluid p-5" style={{ maxWidth: '1200px' }}>
-                    {/* 🌟 THIS SWITCHER IS NOW CLEAN AND SIMPLE */}
                     {activeTab === 'dashboard' ? <Dashboard /> :
                         activeTab === 'payments' ? <Payments /> :
                             <Admin />}

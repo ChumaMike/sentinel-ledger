@@ -196,4 +196,31 @@ public class AccountService {
         return transactionRepository.save(tx);
     }
 
+    // 🌟 MANUAL EXPENSE: Deduct money and categorize it
+    public Transaction logManualExpense(String accountNum, BigDecimal amount, String category, String description) {
+        Account account = accountRepository.findByAccountNumber(accountNum)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new RuntimeException("Insufficient funds for this expense");
+        }
+
+        // 1. Deduct Balance
+        account.setBalance(account.getBalance().subtract(amount));
+        accountRepository.save(account);
+
+        // 2. Log Transaction
+        Transaction tx = new Transaction();
+        tx.setFromAccountId(account.getAccountId());
+        tx.setSenderAccountNumber(account.getAccountNumber());
+        // No receiver needed for lifestyle expenses
+        tx.setAmount(amount);
+        tx.setDescription(description + " [" + category + "]"); // e.g. "Starbucks [Food]"
+        tx.setTransactionType("EXPENSE");
+        tx.setStatus("SUCCESS");
+        tx.setTimestamp(LocalDateTime.now());
+
+        return transactionRepository.save(tx);
+    }
+
 }

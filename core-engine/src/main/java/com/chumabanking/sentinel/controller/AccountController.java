@@ -118,4 +118,16 @@ public class AccountController {
         return ResponseEntity.ok(transactionRepository.findGlobalHistory(accountNumber));
     }
 
+    // 🌟 ENDPOINT: Log a real-world expense
+    @PostMapping("/expense")
+    public ResponseEntity<Transaction> logExpense(@RequestBody Map<String, Object> request) {
+        String accNum = (String) request.get("accountNumber");
+        String category = (String) request.get("category"); // Food, Tech, Transport
+        String desc = (String) request.get("description");
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+
+        Transaction tx = accountService.logManualExpense(accNum, amount, category, desc);
+        return ResponseEntity.ok(tx);
+    }
+
 }
