@@ -5,8 +5,14 @@ import {
     Landmark, Search, ShieldAlert, History,
     ArrowUpRight, ArrowDownLeft, CreditCard, User, Banknote
 } from 'lucide-react';
+import { Lock, Unlock, ShieldAlert } from 'lucide-react'; // Add these icons
 
 const Admin = () => {
+
+    const [isUnlocked, setIsUnlocked] = useState(false);
+    const [pin, setPin] = useState("");
+    const [error, setError] = useState(false);
+
     const [allAccounts, setAllAccounts] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAcc, setSelectedAcc] = useState(null);
@@ -62,6 +68,49 @@ const Admin = () => {
         acc.accountNumber.includes(searchTerm) ||
         (acc.accountName && acc.accountName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+    const handleUnlock = (e) => {
+        e.preventDefault();
+        if (pin === "072479") {
+            setIsUnlocked(true);
+            setError(false);
+        } else {
+            setError(true);
+            setPin("");
+            toast.error("Access Denied: Invalid Security Clearance");
+        }
+    };
+
+    // 🌟 3. RENDER: If Locked, show PIN Screen
+    if (!isUnlocked) {
+        return (
+            <div className="container-fluid h-100 d-flex flex-column align-items-center justify-content-center bg-light" style={{ height: 'calc(100vh - 100px)' }}>
+                <div className="card border-0 shadow-lg p-5 text-center" style={{ width: '400px', borderRadius: '24px' }}>
+                    <div className="bg-danger bg-opacity-10 p-3 rounded-circle d-inline-block mb-4">
+                        <ShieldAlert size={48} className="text-danger" />
+                    </div>
+                    <h3 className="fw-bold mb-2">Restricted Area</h3>
+                    <p className="text-muted small mb-4">Enter Security PIN to access Central Bank Console</p>
+
+                    <form onSubmit={handleUnlock}>
+                        <input
+                            type="password"
+                            className={`form-control form-control-lg text-center fw-bold mb-3 ${error ? 'is-invalid' : ''}`}
+                            placeholder="• • • • • •"
+                            maxLength="6"
+                            value={pin}
+                            onChange={(e) => setPin(e.target.value)}
+                            style={{ letterSpacing: '8px', fontSize: '24px' }}
+                            autoFocus
+                        />
+                        <button className="btn btn-dark w-100 py-3 fw-bold rounded-3">
+                            AUTHENTICATE <Unlock size={18} className="ms-2"/>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container-fluid h-100 p-0 d-flex flex-column" style={{ height: 'calc(100vh - 100px)' }}>

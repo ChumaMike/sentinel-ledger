@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { authApi } from '../utils/api'; // 👈 Using your new API helper
+import { authApi } from '../../utils/api.js'; // 👈 Using your new API helper
 import { toast } from 'react-toastify';
 
 const FNB_TEAL = "#00a7a7";

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
-import { coreApi } from '../utils/api';
+import { coreApi } from '../../utils/api.js';
 import { toast } from 'react-toastify';
 
 const CreateAccountModal = ({ onClose, onAccountCreated }) => {

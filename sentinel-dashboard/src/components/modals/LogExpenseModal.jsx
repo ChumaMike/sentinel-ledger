@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Receipt, Tag, AlertCircle } from 'lucide-react';
-import { coreApi } from '../utils/api';
+import { coreApi } from '../../utils/api.js';
 import { toast } from 'react-toastify';
 
 const CATEGORIES = ["Food & Drink", "Transport", "Shopping", "Entertainment", "Health", "Bills", "Tech"];
