@@ -106,4 +106,16 @@ public class AccountController {
         Transaction tx = accountService.deposit(accNum, amount, desc);
         return ResponseEntity.ok(tx);
     }
+    // 🌟 ADMIN: Get ALL accounts in the entire database
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<Account>> getAllSystemAccounts() {
+        return ResponseEntity.ok(accountRepository.findAll());
+    }
+
+    // 🌟 ADMIN: Get specific history for ANY account number
+    @GetMapping("/admin/history/{accountNumber}")
+    public ResponseEntity<List<Transaction>> getAdminHistory(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(transactionRepository.findGlobalHistory(accountNumber));
+    }
+
 }

@@ -80,7 +80,7 @@ function App() {
                     </div>
                 </div>
 
-                <div className="nav flex-column gap-3">
+                <div className="nav flex-column gap-3 mb-auto">
                     <button onClick={() => setActiveTab('dashboard')}
                             className={`btn d-flex align-items-center gap-3 p-3 text-start border-0 ${activeTab === 'dashboard' ? 'text-white shadow' : 'text-white-50'}`}
                             style={{ backgroundColor: activeTab === 'dashboard' ? FNB_TEAL : 'transparent', borderRadius: '12px' }}>
@@ -110,11 +110,24 @@ function App() {
                         </div>
                     </div>
                 </div>
+
+                {/* 🌟 DISTINCT ADMIN SECTION AT THE BOTTOM */}
+                <div className="pt-4 border-top border-secondary mt-3">
+                    <small className="text-muted fw-bold mb-3 d-block ps-2" style={{fontSize: '10px'}}>SYSTEM ACCESS</small>
+                    <button onClick={() => setActiveTab('admin')}
+                            className={`btn d-flex align-items-center gap-3 p-3 text-start w-100 border-0 ${activeTab === 'admin' ? 'bg-danger text-white shadow' : 'text-white-50 hover-bg-dark'}`}
+                            style={{ borderRadius: '12px', transition: 'all 0.2s' }}>
+                        <div className="bg-white bg-opacity-10 p-1 rounded">
+                            <Lock size={16}/>
+                        </div>
+                        <span className="small fw-bold">Admin Console</span>
+                    </button>
+                </div>
             </nav>
 
             {/* MAIN CONTENT AREA */}
             <main className="flex-grow-1 overflow-auto">
-                <header className="bg-white border-bottom py-3 px-5 d-flex justify-content-between align-items-center sticky-top">
+                <header className="bg-white border-bottom py-3 px-5 d-fex justify-content-between align-items-center sticky-top">
                     <h4 className="fw-bold mb-0 text-dark">
                         {activeTab === 'dashboard' ? 'Overview' :
                             activeTab === 'payments' ? 'Transfer Funds' :
