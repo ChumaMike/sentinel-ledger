@@ -4,11 +4,14 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+
 // 🌟 Import your modular pieces
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './pages/Dashboard';  // The Charts & Goals
 import Payments from './pages/Payments';    // The Form we just made
+import { Lock } from 'lucide-react'; // Import Lock icon
+import Admin from './pages/Admin';
 
 const FNB_TEAL = "#00a7a7";
 
@@ -89,6 +92,11 @@ function App() {
                             style={{ backgroundColor: activeTab === 'payments' ? FNB_TEAL : 'transparent', borderRadius: '12px' }}>
                         <Send size={20}/> Payments
                     </button>
+                    <button onClick={() => setActiveTab('admin')}
+                            className={`btn d-flex align-items-center gap-3 p-3 text-start border-0 ${activeTab === 'admin' ? 'text-white shadow' : 'text-white-50'}`}
+                            style={{ backgroundColor: activeTab === 'admin' ? FNB_TEAL : 'transparent', borderRadius: '12px' }}>
+                        <Lock size={20}/> Admin Console
+                    </button>
                 </div>
 
                 <div className="mt-auto p-3 rounded-4" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
@@ -108,7 +116,9 @@ function App() {
             <main className="flex-grow-1 overflow-auto">
                 <header className="bg-white border-bottom py-3 px-5 d-flex justify-content-between align-items-center sticky-top">
                     <h4 className="fw-bold mb-0 text-dark">
-                        {activeTab === 'dashboard' ? 'Overview' : 'Transfer Funds'}
+                        {activeTab === 'dashboard' ? 'Overview' :
+                            activeTab === 'payments' ? 'Transfer Funds' :
+                                'Admin Console'}
                     </h4>
                     <button onClick={handleLogout} className="btn btn-outline-danger btn-sm d-flex align-items-center gap-2 rounded-3 px-3">
                         <LogOut size={16} /> <span className="fw-bold">LOGOUT</span>
@@ -117,7 +127,9 @@ function App() {
 
                 <div className="container-fluid p-5" style={{ maxWidth: '1200px' }}>
                     {/* 🌟 THIS SWITCHER IS NOW CLEAN AND SIMPLE */}
-                    {activeTab === 'dashboard' ? <Dashboard /> : <Payments />}
+                    {activeTab === 'dashboard' ? <Dashboard /> :
+                        activeTab === 'payments' ? <Payments /> :
+                            <Admin />}
                 </div>
             </main>
         </div>

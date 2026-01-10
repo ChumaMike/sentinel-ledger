@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
+import java.util.Map;
 
 // 🌟 MISSING IMPORTS ADDED HERE
 import java.math.BigDecimal;
@@ -23,9 +25,12 @@ import java.util.Set;
 @RequestMapping("/api/accounts")
 public class AccountController {
 
-    @Autowired private AccountRepository accountRepository;
-    @Autowired private TransactionRepository transactionRepository;
-    @Autowired private AccountService accountService;
+    @Autowired
+    private AccountRepository accountRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
+    @Autowired
+    private AccountService accountService;
 
     @GetMapping
     public List<Account> getMyAccounts() {
@@ -80,5 +85,25 @@ public class AccountController {
     private Long getCurrentUserId() {
         String userIdStr = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return Long.parseLong(userIdStr);
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<Account> createAccount(@RequestBody Map<String, String> request) {
+        Long userId = getCurrentUserId();
+        String type = request.get("type"); // e.g., "SAVINGS"
+        String name = request.get("name"); // e.g., "Emergency Fund"
+
+        Account newAccount = accountService.createAccount(userId, type, name);
+        return ResponseEntity.ok(newAccount);
+    }
+
+    @PostMapping("/deposit")
+    public ResponseEntity<Transaction> deposit(@RequestBody Map<String, Object> request) {
+        String accNum = (String) request.get("accountNumber");
+        String desc = (String) request.get("description");
+        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+
+        Transaction tx = accountService.deposit(accNum, amount, desc);
+        return ResponseEntity.ok(tx);
     }
 }

@@ -15,9 +15,12 @@ public class Account {
     private Long userId;
 
     @Column(unique = true, nullable = false)
-    private String accountNumber; // 🌟 e.g., "100200300"
+    private String accountNumber;
 
-    private String accountType; // 🌟 "SAVINGS" or "CHEQUE"
+    private String accountType;
+
+    private String accountName;
+    private String status;
 
     private BigDecimal balance;
     private String currency;

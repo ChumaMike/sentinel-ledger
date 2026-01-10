@@ -158,4 +158,42 @@ public class AccountService {
 
         return transactionRepository.save(tx);
     }
+
+    public Account createAccount(Long userId, String type, String name) {
+        Account account = new Account();
+        account.setUserId(userId);
+        account.setAccountType(type); // "SAVINGS", "CHEQUE", "BUSINESS"
+        account.setAccountName(name); // "My Holiday Fund"
+        account.setBalance(BigDecimal.ZERO); // Start with 0
+        account.setStatus("ACTIVE");
+
+        // Generate Random 10-digit Account Number (Starts with 200 for created accounts)
+        String accNum = "200" + (1000000 + new Random().nextInt(9000000));
+        account.setAccountNumber(accNum);
+
+        return accountRepository.save(account);
+    }
+
+    //Inject money into an account
+    public Transaction deposit(String accountNumber, BigDecimal amount, String description) {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        // 1. Increase Balance
+        account.setBalance(account.getBalance().add(amount));
+        accountRepository.save(account);
+
+        // 2. Log the Transaction (No sender, just receiver)
+        Transaction tx = new Transaction();
+        tx.setToAccountId(account.getAccountId());
+        tx.setReceiverAccountNumber(account.getAccountNumber());
+        tx.setAmount(amount);
+        tx.setDescription(description); // e.g., "Salary Deposit"
+        tx.setTransactionType("DEPOSIT");
+        tx.setStatus("SUCCESS");
+        tx.setTimestamp(LocalDateTime.now());
+
+        return transactionRepository.save(tx);
+    }
+
 }
