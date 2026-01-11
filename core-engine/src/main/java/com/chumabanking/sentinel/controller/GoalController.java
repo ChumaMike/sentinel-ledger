@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -24,14 +25,27 @@ public class GoalController {
         return ResponseEntity.ok(goalService.getUserGoals(userId));
     }
 
-    // POST Create Goal
+    // 🌟 UPDATE: Create Goal now accepts more info
     @PostMapping
     public ResponseEntity<Goal> createGoal(@RequestBody Map<String, Object> request) {
-        Long userId = 1L; // Hardcoded for now
+        Long userId = 1L;
         String name = (String) request.get("name");
         BigDecimal amount = new BigDecimal(request.get("targetAmount").toString());
+        String desc = (String) request.get("description");
+        String priority = (String) request.get("priority");
 
-        return ResponseEntity.ok(goalService.createGoal(userId, name, amount));
+        LocalDate deadline = null;
+        if (request.get("deadline") != null) {
+            deadline = LocalDate.parse((String) request.get("deadline"));
+        }
+
+        return ResponseEntity.ok(goalService.createGoal(userId, name, amount, desc, priority, deadline));
+    }
+
+    // 🌟 NEW: Edit Goal Endpoint
+    @PutMapping("/{goalId}")
+    public ResponseEntity<Goal> updateGoal(@PathVariable Long goalId, @RequestBody Map<String, Object> updates) {
+        return ResponseEntity.ok(goalService.updateGoal(goalId, updates));
     }
 
     // 🌟 POST: Contribute Funds

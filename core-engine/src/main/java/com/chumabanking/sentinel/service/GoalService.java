@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class GoalService {
@@ -23,18 +24,6 @@ public class GoalService {
 
     public List<Goal> getUserGoals(Long userId) {
         return goalRepository.findByUserId(userId);
-    }
-
-    public Goal createGoal(Long userId, String name, BigDecimal targetAmount) {
-        Goal goal = new Goal();
-        goal.setUserId(userId);
-        goal.setName(name);
-        goal.setTargetAmount(targetAmount);
-        goal.setCurrentAmount(BigDecimal.ZERO); // Start with 0
-        goal.setStatus("IN_PROGRESS");
-        goal.setCreatedDate(LocalDate.now());
-
-        return goalRepository.save(goal);
     }
 
     // 🌟 NEW: Move money from Account -> Goal
@@ -77,5 +66,50 @@ public class GoalService {
         transactionRepository.save(tx);
 
         return updatedGoal;
+    }
+
+    // 🌟 NEW: Update an existing goal
+    public Goal updateGoal(Long goalId, Map<String, Object> updates) {
+        Goal goal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new RuntimeException("Goal not found"));
+
+        if (updates.containsKey("name")) goal.setName((String) updates.get("name"));
+        if (updates.containsKey("description")) goal.setDescription((String) updates.get("description"));
+        if (updates.containsKey("priority")) goal.setPriority((String) updates.get("priority"));
+        if (updates.containsKey("notes")) goal.setNotes((String) updates.get("notes"));
+        if (updates.containsKey("status")) goal.setStatus((String) updates.get("status"));
+
+        // Handle Date conversion
+        if (updates.containsKey("deadline") && updates.get("deadline") != null) {
+            goal.setDeadline(LocalDate.parse((String) updates.get("deadline")));
+        }
+
+        // 🌟 Manual Progress Adjustment
+        if (updates.containsKey("currentAmount")) {
+            goal.setCurrentAmount(new BigDecimal(updates.get("currentAmount").toString()));
+        }
+
+        // Check completion logic
+        if (goal.getCurrentAmount().compareTo(goal.getTargetAmount()) >= 0) {
+            goal.setStatus("COMPLETED");
+        }
+
+        return goalRepository.save(goal);
+    }
+
+    // Update createGoal to include new fields
+    public Goal createGoal(Long userId, String name, BigDecimal targetAmount, String description, String priority, LocalDate deadline) {
+        Goal goal = new Goal();
+        goal.setUserId(userId);
+        goal.setName(name);
+        goal.setTargetAmount(targetAmount);
+        goal.setCurrentAmount(BigDecimal.ZERO);
+        goal.setStatus("IN_PROGRESS");
+        goal.setDescription(description);
+        goal.setPriority(priority);
+        goal.setDeadline(deadline);
+        goal.setCreatedDate(LocalDate.now());
+
+        return goalRepository.save(goal);
     }
 }

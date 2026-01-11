@@ -1,49 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { coreApi } from '../utils/api';
-import { Target, Plus, Trophy, ArrowRight } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Plus, Edit2, Calendar, Flag } from 'lucide-react'; // Add icons
 import CreateGoalModal from '../components/modals/CreateGoalModal';
+import EditGoalModal from '../components/modals/EditGoalModal'; // Import New Modal
 
 const Goals = () => {
     const [goals, setGoals] = useState([]);
-    const [accounts, setAccounts] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
-
-    // State for Contribution Logic
-    const [contributeAmount, setContributeAmount] = useState('');
-    const [selectedGoalId, setSelectedGoalId] = useState(null);
-    const [selectedAccount, setSelectedAccount] = useState('');
+    const [editingGoal, setEditingGoal] = useState(null); // State for editing
 
     const fetchData = async () => {
         const gRes = await coreApi.get('/goals');
-        const aRes = await coreApi.get('/accounts');
         setGoals(gRes.data);
-        setAccounts(aRes.data);
-        // Default select first account
-        if (aRes.data.length > 0) setSelectedAccount(aRes.data[0].accountNumber);
     };
 
     useEffect(() => { fetchData(); }, []);
 
-    const handleContribute = async (goalId) => {
-        if (!contributeAmount || contributeAmount <= 0) return;
-        try {
-            await coreApi.post(`/goals/${goalId}/contribute`, {
-                accountNumber: selectedAccount,
-                amount: contributeAmount
-            });
-            toast.success("Funds Allocated to Goal! 🚀");
-            setContributeAmount('');
-            setSelectedGoalId(null);
-            fetchData(); // Refresh data
-        } catch (err) {
-            toast.error("Contribution Failed (Check Balance)");
-        }
+    // Helper for Priority Colors
+    const getPriorityColor = (p) => {
+        if (p === 'HIGH') return 'text-danger bg-danger-subtle';
+        if (p === 'MEDIUM') return 'text-warning bg-warning-subtle';
+        return 'text-success bg-success-subtle';
     };
 
     return (
         <div className="container-fluid">
             {showCreateModal && <CreateGoalModal onClose={() => setShowCreateModal(false)} onGoalCreated={fetchData} />}
+            {editingGoal && <EditGoalModal goal={editingGoal} onClose={() => setEditingGoal(null)} onGoalUpdated={fetchData} />}
 
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h3 className="fw-bold text-dark">My Goals</h3>
@@ -55,59 +38,40 @@ const Goals = () => {
             <div className="row g-4">
                 {goals.map(goal => {
                     const percent = Math.min(100, (goal.currentAmount / goal.targetAmount) * 100);
-                    const isAchieved = percent >= 100;
+                    const isAchieved = goal.status === 'COMPLETED' || percent >= 100;
 
                     return (
                         <div key={goal.goalId} className="col-md-6 col-lg-4">
                             <div className={`card border-0 shadow-sm p-4 h-100 rounded-4 ${isAchieved ? 'bg-success-subtle' : 'bg-white'}`}>
+
+                                {/* Header with Priority & Edit */}
                                 <div className="d-flex justify-content-between align-items-start mb-3">
-                                    <div className="d-flex align-items-center gap-3">
-                                        <div className={`p-3 rounded-circle shadow-sm ${isAchieved ? 'bg-success text-white' : 'bg-light text-primary'}`}>
-                                            {isAchieved ? <Trophy size={24}/> : <Target size={24}/>}
-                                        </div>
-                                        <div>
-                                            <h5 className="fw-bold mb-0">{goal.name}</h5>
-                                            <small className="text-muted">{isAchieved ? 'COMPLETED' : 'IN PROGRESS'}</small>
-                                        </div>
-                                    </div>
-                                    <h4 className="fw-bold">{percent.toFixed(0)}%</h4>
+                                    <span className={`badge ${getPriorityColor(goal.priority)}`}>{goal.priority}</span>
+                                    <button onClick={() => setEditingGoal(goal)} className="btn btn-sm btn-light rounded-circle">
+                                        <Edit2 size={14} className="text-muted"/>
+                                    </button>
                                 </div>
 
+                                <h5 className="fw-bold mb-1">{goal.name}</h5>
+                                <p className="text-muted small mb-3 text-truncate">{goal.description || "No description set."}</p>
+
                                 {/* Progress Bar */}
-                                <div className="progress mb-3" style={{ height: '10px', borderRadius: '10px' }}>
+                                <div className="d-flex justify-content-between align-items-end mb-1">
+                                    <h2 className="fw-bold mb-0">{percent.toFixed(0)}%</h2>
+                                    {goal.deadline && (
+                                        <small className="text-muted d-flex align-items-center gap-1">
+                                            <Calendar size={12}/> {goal.deadline}
+                                        </small>
+                                    )}
+                                </div>
+                                <div className="progress mb-3" style={{ height: '8px', borderRadius: '10px' }}>
                                     <div className={`progress-bar ${isAchieved ? 'bg-success' : 'bg-primary'}`} style={{ width: `${percent}%` }}></div>
                                 </div>
 
-                                <div className="d-flex justify-content-between small fw-bold text-muted mb-4">
-                                    <span>Saved: R {goal.currentAmount.toLocaleString()}</span>
+                                <div className="d-flex justify-content-between small fw-bold text-muted">
+                                    <span>R {goal.currentAmount.toLocaleString()}</span>
                                     <span>Target: R {goal.targetAmount.toLocaleString()}</span>
                                 </div>
-
-                                {/* Contribution Section */}
-                                {!isAchieved && (
-                                    <div className="mt-auto bg-light p-3 rounded-3">
-                                        {selectedGoalId === goal.goalId ? (
-                                            <div className="fade-in">
-                                                <label className="small fw-bold text-muted mb-2">Move money from:</label>
-                                                <select className="form-select form-select-sm mb-2"
-                                                        value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)}>
-                                                    {accounts.map(acc => <option key={acc.accountId} value={acc.accountNumber}>{acc.accountName}</option>)}
-                                                </select>
-                                                <div className="input-group input-group-sm mb-2">
-                                                    <span className="input-group-text">R</span>
-                                                    <input type="number" className="form-control" placeholder="Amount"
-                                                           value={contributeAmount} onChange={e => setContributeAmount(e.target.value)} autoFocus/>
-                                                    <button onClick={() => handleContribute(goal.goalId)} className="btn btn-success"><ArrowRight size={14}/></button>
-                                                </div>
-                                                <button onClick={() => setSelectedGoalId(null)} className="btn btn-link btn-sm text-muted p-0">Cancel</button>
-                                            </div>
-                                        ) : (
-                                            <button onClick={() => setSelectedGoalId(goal.goalId)} className="btn btn-outline-primary w-100 btn-sm fw-bold">
-                                                Add Funds
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     );
