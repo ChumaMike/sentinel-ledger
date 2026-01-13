@@ -34,8 +34,9 @@ const LogExpenseModal = ({ onClose, onExpenseLogged }) => {
             toast.success("Expense Logged!");
             onExpenseLogged(); // Refresh Dashboard
             onClose();
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to log expense");
+        } catch(error){
+            console.error(error);
+            toast.error(error.response?.data?.message || "Failed to log expense");
         } finally {
             setLoading(false);
         }

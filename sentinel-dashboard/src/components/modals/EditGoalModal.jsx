@@ -15,7 +15,8 @@ const EditGoalModal = ({ goal, onClose, onGoalUpdated }) => {
             toast.success("Goal Updated!");
             onGoalUpdated();
             onClose();
-        } catch (err) {
+        } catch(error){
+            console.error(error);
             toast.error("Update failed");
         }
     };
@@ -26,7 +27,9 @@ const EditGoalModal = ({ goal, onClose, onGoalUpdated }) => {
             toast.success("Goal Completed! 🎉");
             onGoalUpdated();
             onClose();
-        } catch (err) { toast.error("Failed"); }
+        } catch(error){
+            console.error(error);
+            toast.error("Failed"); }
     };
 
     return (

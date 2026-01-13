@@ -17,8 +17,9 @@ const Register = ({ onSwitchToLogin }) => {
             await axios.post('http://localhost:8081/api/auth/register', formData);
             toast.success("Welcome to Sentinel! Please Login.");
             onSwitchToLogin(); // Switch back to login screen
-        } catch (err) {
-            toast.error(err.response?.data || "Registration Failed");
+        }catch(error){
+            console.error(error);
+            toast.error(error.response?.data || "Registration Failed");
         } finally {
             setLoading(false);
         }

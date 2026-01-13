@@ -18,10 +18,7 @@ const Admin = () => {
     const [accHistory, setAccHistory] = useState([]);
     const [amount, setAmount] = useState('');
 
-    // 1. Fetch Global Data on Load
-    useEffect(() => {
-        loadGlobalData();
-    }, []);
+
 
     const loadGlobalData = async () => {
         try {
@@ -31,6 +28,11 @@ const Admin = () => {
             toast.error("Admin Access Denied: Could not load global ledger.");
         }
     };
+
+    // 1. Fetch Global Data on Load
+    useEffect(() => {
+        loadGlobalData();
+    }, []);
 
     // 2. Fetch History when an Account is clicked
     const handleAccountClick = async (acc) => {

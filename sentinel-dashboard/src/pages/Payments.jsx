@@ -22,7 +22,8 @@ const Payments = () => {
                 if (res.data.length > 0) {
                     setTransfer(prev => ({ ...prev, fromAcc: res.data[0].accountNumber }));
                 }
-            } catch (err) {
+            } catch(erorr){
+                console.erorr(erorr)
                 toast.error("Could not load accounts");
             }
         };
@@ -39,8 +40,9 @@ const Payments = () => {
             const res = await coreApi.post(url);
             toast.success(res.data);
             setTransfer(prev => ({ ...prev, toAcc: '', amount: '', description: '' }));
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Transfer Failed");
+        } catch(error){
+            console.error(error);
+            toast.error(error.response?.data?.message || "Transfer Failed");
         } finally {
             setLoading(false);
         }

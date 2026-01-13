@@ -27,8 +27,9 @@ const Login = ({ onLoginSuccess, onSwitchToRegister }) => {
                 toast.success("Welcome back!");
                 onLoginSuccess(); // Notify App.jsx to show Dashboard
             }
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Login Failed");
+        } catch(error){
+            console.error(error);
+            toast.error(error.response?.data?.message || "Login Failed");
         } finally {
             setLoading(false);
         }

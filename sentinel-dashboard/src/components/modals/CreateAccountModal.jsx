@@ -16,7 +16,8 @@ const CreateAccountModal = ({ onClose, onAccountCreated }) => {
             toast.success("Account Opened Successfully!");
             onAccountCreated(); // Tell Dashboard to refresh
             onClose(); // Close modal
-        } catch (err) {
+        } catch(error){
+            console.error(error);
             toast.error("Failed to create account");
         } finally {
             setLoading(false);

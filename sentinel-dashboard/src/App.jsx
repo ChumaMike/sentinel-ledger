@@ -24,11 +24,14 @@ function App() {
 
     // Check Login on Load
     useEffect(() => {
+        // Move the logic outside or just run it directly
         const savedUser = localStorage.getItem('user');
         if (savedUser) {
+            const user = JSON.parse(savedUser);
             setIsAuthenticated(true);
-            setUserProfile(JSON.parse(savedUser));
+            setUserProfile(user);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleLoginSuccess = () => {

@@ -21,7 +21,8 @@ const CreateGoalModal = ({ onClose, onGoalCreated }) => {
             toast.success("Goal Created Successfully!");
             onGoalCreated();
             onClose();
-        } catch (err) {
+        } catch(error){
+            console.error(error);
             toast.error("Failed to create goal");
         }
     };
